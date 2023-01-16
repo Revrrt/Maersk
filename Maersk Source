@@ -1,0 +1,391 @@
+getgenv().walk = 16
+getgenv().jump = 50
+
+
+
+local defaults = {FlySpeed = 50,isFlying = false,flystate = false,}
+
+repeat wait()
+until game.Players.LocalPlayer and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:findFirstChild("Head") and game.Players.LocalPlayer.Character:findFirstChild("Humanoid")
+local Mouse = game.Players.LocalPlayer:GetMouse()
+repeat wait() until Mouse
+local HumRoot = game.Players.LocalPlayer.Character.HumanoidRootPart
+local Hum = game.Players.LocalPlayer.Character.Humanoid
+local SteerSpeed = defaults.FlySpeed or 1000
+local Steer = {f = 0, b = 0, l = 0, r = 0}
+local BackSteer = {f = 0, b = 0, l = 0, r = 0}
+local MaxSpeed = 1000
+
+function Fly()
+    local Gyro = Instance.new('BodyGyro', HumRoot)
+        Gyro.P = 9e4
+        Gyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+        Gyro.CFrame = HumRoot.CFrame
+    local Velocity = Instance.new('BodyVelocity', HumRoot)
+        Velocity.Velocity = Vector3.new(0,0.1,0)
+        Velocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
+    repeat wait()
+        Hum.PlatformStand = true
+        if Steer.l + Steer.r ~= 0 or Steer.f + Steer.b ~= 0 then
+            SteerSpeed = defaults.FlySpeed
+            if SteerSpeed > MaxSpeed then
+                SteerSpeed = MaxSpeed
+            end
+        elseif not (Steer.l + Steer.r ~= 0 or Steer.f + Steer.b ~= 0) and speed ~= 0 then
+            SteerSpeed = SteerSpeed-50
+            if SteerSpeed < 0 then
+                SteerSpeed = 0    
+            end
+        end
+        if (Steer.l + Steer.r) ~= 0 or (Steer.f + Steer.b) ~= 0 then
+            Velocity.Velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (Steer.f+Steer.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(Steer.l+Steer.r,(Steer.f+Steer.b)*.2,0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p)) * SteerSpeed
+            BackSteer = {f = Steer.f ,b = Steer.b ,l = Steer.l, r = Steer.r}
+        elseif (Steer.l + Steer.r == 0 or Steer.f + Steer.b == 0) and SteerSpeed ~= 0 then
+            Velocity.Velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (BackSteer.f+BackSteer.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(BackSteer.l+BackSteer.r,(BackSteer.f+BackSteer.b)*.2,0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p)) * SteerSpeed
+        else
+            Velocity.Velocity = Vector3.new(0,0.1,0)
+        end
+        Gyro.CFrame = game.Workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((Steer.f+Steer.b)*50*SteerSpeed/MaxSpeed),0,0)
+    until not defaults.isFlying
+    local SteerSpeed = 0
+    local Steer = {F = 0,B = 0,L = 0,R = 0}
+    local BackSteer = {F = 0,B = 0,L = 0,R = 0}
+    Gyro:Destroy()
+    Velocity:Destroy()
+    Hum.PlatformStand = false
+end
+
+local Mouse = game.Players.LocalPlayer:GetMouse()
+
+Mouse.KeyDown:Connect(function(Key)
+    if Key:lower() == "w" then
+        isWDown = true
+        Steer.f = 1
+    elseif Key:lower() == "a" then
+        isADown = true
+        Steer.l = -1
+    elseif Key:lower() == "s" then
+        isSDown = true
+        Steer.b = -1
+    elseif Key:lower() == "d" then
+        isDDown = true
+        Steer.r = 1
+    end
+end)
+Mouse.KeyUp:Connect(function(Key)
+    if Key:lower() == "w" then
+        isWDown = false
+        Steer.f = 0
+    elseif Key:lower() == "a" then
+        isADown = false
+        Steer.l = 0
+    elseif Key:lower() == "s" then
+        isSDown = false
+        Steer.b = 0
+    elseif Key:lower() == "d" then
+        isDDown = false
+        Steer.r = 0
+    end
+end)
+
+
+
+
+
+--Loadstring
+
+local Library = loadstring(game:HttpGet('https://raw.githubusercontent.com/VisualRoblox/Roblox/main/UI-Libraries/Visual%20UI%20Library/Source.lua'))()
+local Window = Library:CreateWindow('Project Maersk', 'Port Maersk GUI', 'Visual UI Library', 'rbxassetid://10618928818', false, 'VisualUIConfigs', 'Default')
+
+local Tab = Window:CreateTab('Player', true, 'rbxassetid://2790546266', Vector2.new(484, 44), Vector2.new(36, 36))
+local PlayerSection = Tab:CreateSection('Section')
+
+
+
+
+--Slider
+
+
+local Slider = PlayerSection:CreateSlider('Walkspeed', 16, 500, 16, Color3.fromRGB(255, 0, 0), function(value)
+    getgenv().walk = value
+end)
+
+local Slider = PlayerSection:CreateSlider('Jumppower', 50, 500, 50, Color3.fromRGB(255, 0, 0), function(value)
+    getgenv().jump = value
+end)
+
+
+spawn(function()
+    while wait() do game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = getgenv().walk game.Players.LocalPlayer.Character.Humanoid.JumpPower = getgenv().jump
+end
+end)
+
+
+local Slider = PlayerSection:CreateSlider('Flyspeed', 50, 500, 50, Color3.fromRGB(255, 0, 0), function(value)
+    defaults.FlySpeed = value
+end)
+
+
+
+
+local Keybind = PlayerSection:CreateKeybind('Fly', 'Q', function()
+    if defaults.flystate == true then
+        defaults.isFlying = false
+        defaults.flystate = false
+        HumRoot.BodyGyro:Destroy()
+        HumRoot.BodyVelocity:Destroy()
+        Hum.PlatformStand = false
+    else
+        defaults.isFlying = true
+        defaults.flystate = true
+        Fly()
+        end
+end)
+
+
+local Button = PlayerSection:CreateButton('Click TP', function()
+    mouse = game.Players.LocalPlayer:GetMouse()
+tool = Instance.new("Tool")
+tool.RequiresHandle = false
+tool.Name = "Click Teleport"
+tool.Activated:connect(function()
+local pos = mouse.Hit+Vector3.new(0,2.5,0)
+pos = CFrame.new(pos.X,pos.Y,pos.Z)
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = pos
+end)
+tool.Parent = game.Players.LocalPlayer.Backpack
+end)
+
+
+
+
+
+
+--Teleports
+
+local Tab = Window:CreateTab('Defender Teleports', true, 'rbxassetid://3926305904', Vector2.new(484, 44), Vector2.new(36, 36))
+local TeleportSection = Tab:CreateSection('Defender Teleports')
+
+
+--Defenders Teleports
+
+
+local Button = TeleportSection:CreateButton('Docks Roof', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1554.22876, 841.135376, 178.25827, 0.435911924, 5.47721015e-08, 0.899989307, -7.41829709e-08, 1, -2.49279175e-08, -0.899989307, -5.58975088e-08, 0.435911924)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+
+local Button = TeleportSection:CreateButton('Docks', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1638.33191, 700.16687, 299.662079, 0.388213128, 1.53904594e-07, 0.921569586, -4.75030575e-08, 1, -1.46991923e-07, -0.921569586, 1.32868179e-08, 0.388213128)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+
+local Button = TeleportSection:CreateButton('Main Gate', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1217.18213, 890.13031, 1172.99524, 0.999999762, -8.15681673e-08, 0.00064937037, 8.15681531e-08, 1, 5.29677031e-11, -0.00064937037, 2.48544772e-16, 0.999999762)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+
+local Button = TeleportSection:CreateButton('Courtyard Vent', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1572.10205, 915.13031, 1037.26917, -0.970941186, -1.35798244e-08, -0.239318207, -2.98936098e-09, 1, -4.46156214e-08, 0.239318207, -4.26037374e-08, -0.970941186)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+
+local Button = TeleportSection:CreateButton('Triad', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1529.01562, 910.685425, 1464.57019, -0.017566476, 1.36165026e-08, -0.999845684, 3.6099145e-08, 1, 1.29843718e-08, 0.999845684, -3.58654866e-08, -0.017566476)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+local Button = TeleportSection:CreateButton('J-SON', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1253.59326, 900.157593, 1467.67444, -0.000225838317, -1.26687439e-07, 1, -2.01389856e-08, 1, 1.26682892e-07, -1, -2.01103756e-08, -0.000225838317)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+
+local Button = TeleportSection:CreateButton('Terminal', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1270.71777, 947.684387, 1887.4834, -0.984879255, 9.10779789e-08, -0.173242167, 1.08723874e-07, 1, -9.23673156e-08, 0.173242167, -1.09806209e-07, -0.984879255)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+
+local Button = TeleportSection:CreateButton('Cliff', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1188.0863, 899.298035, 1026.36511, -0.16592209, -5.95455809e-08, 0.98613888, -5.07717459e-08, 1, 5.18399865e-08, -0.98613888, -4.14665955e-08, -0.16592209)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+--Raiders Teleports
+
+local Tab = Window:CreateTab('Raider Teleports', true, 'rbxassetid://3926305904', Vector2.new(484, 44), Vector2.new(36, 36))
+local TeleportSectionTwo = Tab:CreateSection('Raider')
+
+
+local Button = TeleportSectionTwo:CreateButton('Docks Spawn', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(878.160889, 700.055664, 324.17926, 0.20847255, -1.57583846e-09, 0.978028238, -4.68623496e-09, 1, 2.61013922e-09, -0.978028238, -5.12741227e-09, 0.20847255)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+local Button = TeleportSectionTwo:CreateButton('Rafters', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1624.83826, 756.524963, 91.2212677, -0.919288695, 4.54547013e-08, 0.393583894, -9.39740552e-09, 1, -1.37438633e-07, -0.393583894, -1.30044441e-07, -0.919288695)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+
+local Button = TeleportSectionTwo:CreateButton('Sewer Entrance', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(970.661743, 585.999878, 869.996277, 0.839906871, -2.43300473e-08, -0.54273051, 6.29822452e-08, 1, 5.26397059e-08, 0.54273051, -7.83948408e-08, 0.839906871)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+local Button = TeleportSectionTwo:CreateButton('Sewer Teleport', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(863.766174, 621.070312, 1576.49353, 0.913811564, -5.00832904e-08, -0.40613848, 9.87163684e-09, 1, -1.01104618e-07, 0.40613848, 8.83813129e-08, 0.913811564)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+local Button = TeleportSectionTwo:CreateButton('Sewer Door', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(842.430298, 619.522278, 1328.28101, 0.494241059, -6.35262793e-08, 0.869324863, 1.1017881e-07, 1, 1.04349791e-08, -0.869324863, 9.06237858e-08, 0.494241059)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+
+
+local Button = TeleportSectionTwo:CreateButton('Cliff', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(996.074768, 858.302368, 1231.42957, 0.00517042354, -5.5492273e-09, 0.999986649, -1.90012504e-08, 1, 5.64754732e-09, -0.999986649, -1.90301961e-08, 0.00517042354)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+local Button = TeleportSectionTwo:CreateButton('Gate Vent', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1217.54126, 890.130371, 1046.42651, 0.384823382, -1.33759983e-07, 0.922990203, 9.99098404e-09, 1, 1.40754707e-07, -0.922990203, -4.49441231e-08, 0.384823382)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+local Button = TeleportSectionTwo:CreateButton('Banner Vent', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1222.31787, 910.130249, 1271.13281, -0.982229531, 4.98016917e-08, 0.187683731, 7.37118953e-08, 1, 1.20416971e-07, -0.187683731, 1.32111623e-07, -0.982229531)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+local Button = TeleportSectionTwo:CreateButton('Main Vent (Next To Reactor)', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1231.47058, 920.507385, 1613.47339, -0.0524952821, -1.20068108e-07, 0.998621166, -2.88608391e-08, 1, 1.18716741e-07, -0.998621166, -2.2588976e-08, -0.0524952821)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+
+
+local Button = TeleportSectionTwo:CreateButton('New', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1074.49561, 916.671326, 1642.29907, -0.00284402538, 1.16798802e-08, 0.999995947, 4.44950672e-08, 1, -1.15533814e-08, -0.999995947, 4.44620305e-08, -0.00284402538)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+
+local Button = TeleportSectionTwo:CreateButton('Old', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1384.29871, 916.669739, 1642.34351, 0.0120892599, 5.73581502e-08, -0.999926925, -2.85932966e-08, 1, 5.70166456e-08, 0.999926925, 2.79019172e-08, 0.0120892599)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+local Button = TeleportSectionTwo:CreateButton('J-SON', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1253.59326, 900.157593, 1467.67444, -0.000225838317, -1.26687439e-07, 1, -2.01389856e-08, 1, 1.26682892e-07, -1, -2.01103756e-08, -0.000225838317)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+local Button = TeleportSectionTwo:CreateButton('Triad', function()
+    local pl = game.Players.LocalPlayer.Character.HumanoidRootPart
+local location = CFrame.new(1529.01562, 910.685425, 1464.57019, -0.017566476, 1.36165026e-08, -0.999845684, 3.6099145e-08, 1, 1.29843718e-08, 0.999845684, -3.58654866e-08, -0.017566476)
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
+humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+wait(0.1)
+pl.CFrame = location
+end)
+
+
+local Tab = Window:CreateTab('Credits', true, 'rbxassetid://3926305904', Vector2.new(484, 44), Vector2.new(36, 36))
+local CreditsSection = Tab:CreateSection('Credits')
+
+
+local Button = CreditsSection:CreateButton('R_evrrt on Roblox', function()
+    print('R_evrrt on Roblox')
+end)
+
+local Button = CreditsSection:CreateButton('cole#0004 on Discord', function()
+    print('cole#0004 on Discord')
+end)
